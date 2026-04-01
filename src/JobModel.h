@@ -4,10 +4,16 @@
 #include <QString>
 
 struct JobEntry {
+    enum class State {
+        Idle,
+        Running,
+        Done
+    };
+
     int     jobId;
     QString label;
     int     progress;   // 0–100
-    QString statusText; // "Idle" | "Running" | "Done"
+    State   state;
 };
 
 class JobModel : public QAbstractListModel

@@ -1,7 +1,6 @@
 #include "NotificationModel.h"
 #include <array>
 #include <expected>
-#include <format>
 #include <ranges>
 #include <string_view>
 #include <QDateTime>
@@ -89,8 +88,7 @@ void NotificationModel::append(const QString &level, const QString &message)
     } else {
         normalized = {
             QStringLiteral("Warning"),
-            QString::fromStdString(
-                std::format("Invalid notification payload: {}", entry.error().toStdString())),
+            QObject::tr("Invalid notification payload: %1").arg(entry.error()),
             currentTimestamp()};
     }
 

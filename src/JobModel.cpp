@@ -17,6 +17,20 @@ constexpr int kMaxProgress = 100;
 using JobRef = std::reference_wrapper<JobEntry>;
 using FindJobResult = std::expected<JobRef, QString>;
 
+QString stateText(JobEntry::State state)
+{
+    switch (state) {
+    case JobEntry::State::Idle:
+        return JobModel::tr("Idle");
+    case JobEntry::State::Running:
+        return JobModel::tr("Running");
+    case JobEntry::State::Done:
+        return JobModel::tr("Done");
+    }
+
+    return JobModel::tr("Unknown");
+}
+
 FindJobResult findJob(QList<JobEntry> &jobs, int index)
 {
     if (index < 0 || index >= jobs.size()) {
@@ -39,7 +53,7 @@ JobModel::JobModel(QObject *parent)
                   i + 1,
                   QString::fromStdString(std::format("Job #{}", i + 1)),
                   (i * kProgressModuloFactor + kInitialWorkload) % kMaxProgress,
-                  QStringLiteral("Idle")};
+                  JobEntry::State::Idle};
           });
 
     for (JobEntry entry : initialJobs)
@@ -61,7 +75,7 @@ QVariant JobModel::data(const QModelIndex &index, int role) const
     case JobIdRole:      return j.jobId;
     case LabelRole:      return j.label;
     case ProgressRole:   return j.progress;
-    case StatusTextRole: return j.statusText;
+    case StatusTextRole: return stateText(j.state);
     default:             return {};
     }
 }
@@ -85,10 +99,10 @@ void JobModel::runJob(int index)
     }
 
     auto &j = job->get();
-    j.statusText = QStringLiteral("Running");
+    j.state = JobEntry::State::Running;
     j.progress = std::min(j.progress + kRunIncrement, kMaxProgress);
     if (j.progress >= kMaxProgress)
-        j.statusText = QStringLiteral("Done");
+        j.state = JobEntry::State::Done;
 
     const QModelIndex idx = createIndex(index, 0);
     emit dataChanged(idx, idx, {ProgressRole, StatusTextRole});
@@ -98,13 +112,13 @@ void JobModel::updateProgress(int workload)
 {
     for (int i : std::views::iota(0, m_jobs.size())) {
         auto &j = m_jobs[i];
-        if (j.statusText == QLatin1String("Running")) {
+        if (j.state == JobEntry::State::Running) {
             j.progress = std::min(j.progress + kTickIncrement, kMaxProgress);
             if (j.progress >= kMaxProgress)
-                j.statusText = QStringLiteral("Done");
+                j.state = JobEntry::State::Done;
             const QModelIndex idx = createIndex(i, 0);
             emit dataChanged(idx, idx, {ProgressRole, StatusTextRole});
-        } else if (j.statusText == QLatin1String("Idle")) {
+        } else if (j.state == JobEntry::State::Idle) {
             j.progress = (i * kProgressModuloFactor + workload) % kMaxProgress;
             const QModelIndex idx = createIndex(i, 0);
             emit dataChanged(idx, idx, {ProgressRole});

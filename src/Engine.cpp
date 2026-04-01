@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <array>
 #include <expected>
-#include <format>
 #include <iterator>
 #include <optional>
 #include <ranges>
@@ -129,9 +128,9 @@ void Engine::resetSystem()
     emit workloadChanged();
     emit alertsChanged();
     emit activeUsersChanged();
-    const auto timestamp = QDateTime::currentDateTime().toString(QStringLiteral("hh:mm:ss")).toStdString();
+    const QString timestamp = QDateTime::currentDateTime().toString(QStringLiteral("hh:mm:ss"));
     postEvent(QStringLiteral("Info"),
-              QString::fromStdString(std::format("System reset at {}", timestamp)));
+              tr("System reset at %1").arg(timestamp));
 }
 
 void Engine::setLanguage(const QString &locale)
@@ -147,9 +146,9 @@ bool Engine::applyConfig(const QVariantMap &config)
         return false;
     }
 
-    const auto timestamp = QDateTime::currentDateTime().toString(QStringLiteral("hh:mm:ss")).toStdString();
+    const QString timestamp = QDateTime::currentDateTime().toString(QStringLiteral("hh:mm:ss"));
     postEvent(QStringLiteral("Info"),
-              QString::fromStdString(std::format("Config applied at {}", timestamp)));
+              tr("Config applied at %1").arg(timestamp));
     return true;
 }
 
@@ -215,22 +214,18 @@ QVariantList Engine::trendData() const
 
 QString Engine::exportReport() const
 {
-    const auto timestamp = QDateTime::currentDateTime().toString(QStringLiteral("hh:mm:ss")).toStdString();
-    const auto report = std::format(
-        "[{}] System Report\n"
-        "  Workload:      {}%\n"
-        "  Active users:  {}\n"
-        "  Alerts:        {}\n"
-        "  CPU budget:    {}%\n"
-        "  Memory budget: {}%\n"
-        "  Auto-refresh:  {}\n",
-        timestamp,
-        m_workload,
-        m_activeUsers,
-        m_alerts,
-        m_cpuBudget,
-        m_memoryBudget,
-        m_autoRefresh ? "on" : "off");
-
-    return QString::fromStdString(report);
+    return tr("[%1] System Report\n"
+              "  Workload:      %2%\n"
+              "  Active users:  %3\n"
+              "  Alerts:        %4\n"
+              "  CPU budget:    %5%\n"
+              "  Memory budget: %6%\n"
+              "  Auto-refresh:  %7\n")
+        .arg(QDateTime::currentDateTime().toString(QStringLiteral("hh:mm:ss")))
+        .arg(m_workload)
+        .arg(m_activeUsers)
+        .arg(m_alerts)
+        .arg(m_cpuBudget)
+        .arg(m_memoryBudget)
+        .arg(m_autoRefresh ? tr("on") : tr("off"));
 }
