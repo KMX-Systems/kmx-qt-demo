@@ -1,6 +1,68 @@
 #include "Engine.h"
+#include <algorithm>
+#include <array>
+#include <expected>
+#include <format>
+#include <iterator>
+#include <optional>
+#include <ranges>
+#include <string>
+#include <string_view>
 #include <QDateTime>
 #include <QRandomGenerator>
+
+namespace {
+using ParsedBudget = std::expected<std::optional<int>, QString>;
+
+constexpr int kMinBudget = 0;
+constexpr int kMaxBudget = 100;
+constexpr int kResetWorkload = 20;
+constexpr int kResetAlerts = 1;
+constexpr int kResetActiveUsers = 18;
+
+constexpr std::array<std::string_view, 5> kWeekDays{"Mon", "Tue", "Wed", "Thu", "Fri"};
+constexpr std::array<int, 5> kWeeklyReads{12, 22, 33, 46, 58};
+constexpr std::array<int, 5> kWeeklyWrites{9, 18, 21, 37, 49};
+
+constexpr std::array<int, 6> kTrendABase{18, 26, 39, 44, 50, 62};
+constexpr std::array<int, 6> kTrendBBase{12, 22, 28, 35, 47, 53};
+
+template <typename T, std::size_t N>
+consteval std::size_t arraySize(const std::array<T, N> &)
+{
+    return N;
+}
+
+static_assert(arraySize(kWeekDays) == arraySize(kWeeklyReads));
+static_assert(arraySize(kWeekDays) == arraySize(kWeeklyWrites));
+
+QString toQString(std::string_view text)
+{
+    return QString::fromLatin1(text.data(), static_cast<int>(text.size()));
+}
+
+ParsedBudget parseBudget(const QVariantMap &config, QStringView key)
+{
+    const QString keyString = key.toString();
+    if (!config.contains(keyString))
+        return std::optional<int>{};
+
+    bool ok = false;
+    const int value = config.value(keyString).toInt(&ok);
+    if (!ok)
+        return std::unexpected(QObject::tr("%1 must be numeric").arg(keyString));
+
+    if (value < kMinBudget || value > kMaxBudget) {
+        return std::unexpected(
+            QObject::tr("%1 must be between %2 and %3")
+                .arg(keyString)
+                .arg(kMinBudget)
+                .arg(kMaxBudget));
+    }
+
+    return value;
+}
+} // namespace
 
 Engine::Engine(QObject *parent)
     : QObject(parent)
@@ -61,15 +123,15 @@ void Engine::runJob(int index)
 
 void Engine::resetSystem()
 {
-    m_workload    = 20;
-    m_alerts      = 1;
-    m_activeUsers = 18;
+    m_workload = kResetWorkload;
+    m_alerts = kResetAlerts;
+    m_activeUsers = kResetActiveUsers;
     emit workloadChanged();
     emit alertsChanged();
     emit activeUsersChanged();
+    const auto timestamp = QDateTime::currentDateTime().toString(QStringLiteral("hh:mm:ss")).toStdString();
     postEvent(QStringLiteral("Info"),
-              tr("System reset at %1")
-                  .arg(QDateTime::currentDateTime().toString(QStringLiteral("hh:mm:ss"))));
+              QString::fromStdString(std::format("System reset at {}", timestamp)));
 }
 
 void Engine::setLanguage(const QString &locale)
@@ -79,63 +141,96 @@ void Engine::setLanguage(const QString &locale)
 
 bool Engine::applyConfig(const QVariantMap &config)
 {
-    if (config.contains(QStringLiteral("cpuBudget"))) {
-        const int v = config.value(QStringLiteral("cpuBudget")).toInt();
-        if (v < 0 || v > 100) return false;
-        setCpuBudget(v);
+    const auto applyResult = applyConfigDetailed(config);
+    if (!applyResult) {
+        postEvent(QStringLiteral("Warning"), applyResult.error());
+        return false;
     }
-    if (config.contains(QStringLiteral("memoryBudget"))) {
-        const int v = config.value(QStringLiteral("memoryBudget")).toInt();
-        if (v < 0 || v > 100) return false;
-        setMemoryBudget(v);
-    }
+
+    const auto timestamp = QDateTime::currentDateTime().toString(QStringLiteral("hh:mm:ss")).toStdString();
     postEvent(QStringLiteral("Info"),
-              tr("Config applied at %1")
-                  .arg(QDateTime::currentDateTime().toString(QStringLiteral("hh:mm:ss"))));
+              QString::fromStdString(std::format("Config applied at {}", timestamp)));
     return true;
+}
+
+Engine::ApplyConfigResult Engine::applyConfigDetailed(const QVariantMap &config)
+{
+    const auto cpuBudget = parseBudget(config, QStringLiteral("cpuBudget"));
+    if (!cpuBudget)
+        return std::unexpected(cpuBudget.error());
+
+    const auto memoryBudget = parseBudget(config, QStringLiteral("memoryBudget"));
+    if (!memoryBudget)
+        return std::unexpected(memoryBudget.error());
+
+    if (cpuBudget.value().has_value())
+        setCpuBudget(*cpuBudget.value());
+    if (memoryBudget.value().has_value())
+        setMemoryBudget(*memoryBudget.value());
+
+    return {};
 }
 
 QVariantList Engine::weeklyStats() const
 {
-    static const char* days[]   = {"Mon","Tue","Wed","Thu","Fri"};
-    static const int   reads[]  = {12, 22, 33, 46, 58};
-    static const int   writes[] = {9,  18, 21, 37, 49};
     QVariantList result;
-    for (int i = 0; i < 5; ++i) {
-        QVariantMap entry;
-        entry[QStringLiteral("day")]   = QLatin1String(days[i]);
-        entry[QStringLiteral("read")]  = reads[i];
-        entry[QStringLiteral("write")] = writes[i];
+    result.reserve(static_cast<qsizetype>(kWeekDays.size()));
+
+    const auto rows = std::views::iota(std::size_t{0}, kWeekDays.size())
+        | std::views::transform([](std::size_t index) {
+              QVariantMap entry;
+              entry[QStringLiteral("day")] = toQString(kWeekDays[index]);
+              entry[QStringLiteral("read")] = kWeeklyReads[index];
+              entry[QStringLiteral("write")] = kWeeklyWrites[index];
+              return entry;
+          });
+
+    for (QVariantMap entry : rows)
         result.append(entry);
-    }
+
     return result;
 }
 
 QVariantList Engine::trendData() const
 {
-    const int base = m_workload;
-    const int a[]  = {18, 26, 39, 44, 50, 62, base};
-    const int b[]  = {12, 22, 28, 35, 47, 53, std::max(10, base - 8)};
-    QVariantList seriesA, seriesB;
-    for (int v : a) seriesA.append(v);
-    for (int v : b) seriesB.append(v);
-    return {seriesA, seriesB};
+    auto toVariantList = [](const auto &values) {
+        QVariantList output;
+        output.reserve(static_cast<qsizetype>(std::ranges::size(values)));
+        std::ranges::transform(values, std::back_inserter(output), [](int value) {
+            return QVariant{value};
+        });
+        return output;
+    };
+
+    std::array<int, kTrendABase.size() + 1> seriesA{};
+    std::ranges::copy(kTrendABase, seriesA.begin());
+    seriesA.back() = m_workload;
+
+    std::array<int, kTrendBBase.size() + 1> seriesB{};
+    std::ranges::copy(kTrendBBase, seriesB.begin());
+    seriesB.back() = std::max(10, m_workload - 8);
+
+    return {toVariantList(seriesA), toVariantList(seriesB)};
 }
 
 QString Engine::exportReport() const
 {
-    return tr("[%1] System Report\n"
-              "  Workload:      %2%\n"
-              "  Active users:  %3\n"
-              "  Alerts:        %4\n"
-              "  CPU budget:    %5%\n"
-              "  Memory budget: %6%\n"
-              "  Auto-refresh:  %7\n")
-        .arg(QDateTime::currentDateTime().toString(QStringLiteral("hh:mm:ss")))
-        .arg(m_workload)
-        .arg(m_activeUsers)
-        .arg(m_alerts)
-        .arg(m_cpuBudget)
-        .arg(m_memoryBudget)
-        .arg(m_autoRefresh ? tr("on") : tr("off"));
+    const auto timestamp = QDateTime::currentDateTime().toString(QStringLiteral("hh:mm:ss")).toStdString();
+    const auto report = std::format(
+        "[{}] System Report\n"
+        "  Workload:      {}%\n"
+        "  Active users:  {}\n"
+        "  Alerts:        {}\n"
+        "  CPU budget:    {}%\n"
+        "  Memory budget: {}%\n"
+        "  Auto-refresh:  {}\n",
+        timestamp,
+        m_workload,
+        m_activeUsers,
+        m_alerts,
+        m_cpuBudget,
+        m_memoryBudget,
+        m_autoRefresh ? "on" : "off");
+
+    return QString::fromStdString(report);
 }

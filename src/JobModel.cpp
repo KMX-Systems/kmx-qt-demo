@@ -1,15 +1,49 @@
 #include "JobModel.h"
 #include <algorithm>
+#include <expected>
+#include <format>
+#include <functional>
+#include <ranges>
+#include <QDebug>
+
+namespace {
+constexpr int kJobCount = 10;
+constexpr int kInitialWorkload = 42;
+constexpr int kRunIncrement = 15;
+constexpr int kTickIncrement = 2;
+constexpr int kProgressModuloFactor = 9;
+constexpr int kMaxProgress = 100;
+
+using JobRef = std::reference_wrapper<JobEntry>;
+using FindJobResult = std::expected<JobRef, QString>;
+
+FindJobResult findJob(QList<JobEntry> &jobs, int index)
+{
+    if (index < 0 || index >= jobs.size()) {
+        return std::unexpected(
+            QString::fromStdString(std::format("Invalid job index: {}", index)));
+    }
+
+    return std::ref(jobs[index]);
+}
+} // namespace
 
 JobModel::JobModel(QObject *parent)
     : QAbstractListModel(parent)
 {
-    for (int i = 0; i < 10; ++i) {
-        m_jobs.append({i + 1,
-                       QStringLiteral("Job #%1").arg(i + 1),
-                       (i * 9 + 42) % 100,
-                       QStringLiteral("Idle")});
-    }
+    m_jobs.reserve(kJobCount);
+
+    const auto initialJobs = std::views::iota(0, kJobCount)
+        | std::views::transform([](int i) {
+              return JobEntry{
+                  i + 1,
+                  QString::fromStdString(std::format("Job #{}", i + 1)),
+                  (i * kProgressModuloFactor + kInitialWorkload) % kMaxProgress,
+                  QStringLiteral("Idle")};
+          });
+
+    for (JobEntry entry : initialJobs)
+        m_jobs.append(entry);
 }
 
 int JobModel::rowCount(const QModelIndex &parent) const
@@ -44,29 +78,34 @@ QHash<int, QByteArray> JobModel::roleNames() const
 
 void JobModel::runJob(int index)
 {
-    if (index < 0 || index >= m_jobs.size())
+    const auto job = findJob(m_jobs, index);
+    if (!job) {
+        qWarning().noquote() << job.error();
         return;
-    auto &j = m_jobs[index];
+    }
+
+    auto &j = job->get();
     j.statusText = QStringLiteral("Running");
-    j.progress   = std::min(j.progress + 15, 100);
-    if (j.progress >= 100)
+    j.progress = std::min(j.progress + kRunIncrement, kMaxProgress);
+    if (j.progress >= kMaxProgress)
         j.statusText = QStringLiteral("Done");
+
     const QModelIndex idx = createIndex(index, 0);
     emit dataChanged(idx, idx, {ProgressRole, StatusTextRole});
 }
 
 void JobModel::updateProgress(int workload)
 {
-    for (int i = 0; i < m_jobs.size(); ++i) {
+    for (int i : std::views::iota(0, m_jobs.size())) {
         auto &j = m_jobs[i];
         if (j.statusText == QLatin1String("Running")) {
-            j.progress = std::min(j.progress + 2, 100);
-            if (j.progress >= 100)
+            j.progress = std::min(j.progress + kTickIncrement, kMaxProgress);
+            if (j.progress >= kMaxProgress)
                 j.statusText = QStringLiteral("Done");
             const QModelIndex idx = createIndex(i, 0);
             emit dataChanged(idx, idx, {ProgressRole, StatusTextRole});
         } else if (j.statusText == QLatin1String("Idle")) {
-            j.progress = (i * 9 + workload) % 100;
+            j.progress = (i * kProgressModuloFactor + workload) % kMaxProgress;
             const QModelIndex idx = createIndex(i, 0);
             emit dataChanged(idx, idx, {ProgressRole});
         }

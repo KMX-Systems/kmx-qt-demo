@@ -1,4 +1,5 @@
 #pragma once
+#include <expected>
 #include <QObject>
 #include <QTimer>
 #include <QVariantList>
@@ -66,6 +67,10 @@ private slots:
     void onTick();
 
 private:
+    using ApplyConfigResult = std::expected<void, QString>;
+
+    ApplyConfigResult applyConfigDetailed(const QVariantMap &config);
+
     int  m_workload    {42};
     int  m_activeUsers {18};
     int  m_alerts      {3};
