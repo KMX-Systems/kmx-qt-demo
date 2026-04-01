@@ -25,21 +25,21 @@ The app uses a **fake/simulated C++ backend engine** for demo behavior (not a re
 
 ```mermaid
 flowchart LR
-  QML[QML GUI<br/>Main.qml + windows/pages]
-  Engine[C++ Engine<br/>Engine.h/.cpp]
-  Models[Qt Models<br/>JobModel/UserModel/NotificationModel]
-  Translator[QTranslator + QQmlApplicationEngine]
+  QML[QML GUI]
+  Engine[C++ Engine]
+  Models[Qt Models]
+  Translator[Translator and QML engine]
 
-  QML -->|Q_INVOKABLE calls| Engine
-  QML -->|Reads Q_PROPERTY values| Engine
-  Engine -->|Signals: workloadChanged, alertsChanged, etc.| QML
+  QML -->|invokable calls| Engine
+  QML -->|property reads| Engine
+  Engine -->|change signals| QML
 
-  Engine -->|Exposes model objects| Models
-  Models -->|List/Repeater data roles| QML
+  Engine -->|model objects| Models
+  Models -->|role data| QML
 
-  QML -->|setLanguage(locale)| Engine
-  Engine -->|languageChangeRequested(locale)| Translator
-  Translator -->|retranslate()| QML
+  QML -->|request language change| Engine
+  Engine -->|language change signal| Translator
+  Translator -->|retranslate ui| QML
 ```
 
 ```mermaid
