@@ -1,0 +1,17 @@
+services:
+  qt-dev:
+    image: dalogik/qt-docker:qt6.11.0-linux64-gcc
+    container_name: qt611-demo
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+      - /tmp/.X11-unix:/tmp/.X11-unix
+    devices:
+      - /dev/dri:/dev/dri
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      - QT_QUICK_BACKEND=${QT_QUICK_BACKEND:-}
+      - QSG_RHI_BACKEND=${QSG_RHI_BACKEND:-}
+    network_mode: host
+    command: ["bash", "-lc", "sleep infinity"]
