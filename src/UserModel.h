@@ -4,9 +4,24 @@
 #include <QString>
 
 struct UserEntry {
+    enum class Role {
+        Admin,
+        Analyst,
+        Operator,
+        Viewer,
+        Editor
+    };
+
+    enum class Status {
+        Online,
+        Away,
+        Offline,
+        Busy
+    };
+
     QString name;
-    QString role;
-    QString status;
+    Role role;
+    Status status;
 };
 
 class UserModel : public QAbstractListModel

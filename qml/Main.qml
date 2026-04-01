@@ -9,6 +9,7 @@ ApplicationWindow {
     visible: true
     title: qsTr("KMX Qt Demo")
 
+    required property var backend
     property real dialValue: 55
     property color uiLightGray: "#c7ced8"
 
@@ -84,7 +85,7 @@ ApplicationWindow {
 
             RoundButton {
                 text: "+"
-                onClicked: engine.postEvent("Info", qsTr("Manual event at %1").arg(Qt.formatTime(new Date(), "hh:mm:ss")))
+                onClicked: root.backend.postEvent("Info", qsTr("Manual event at %1").arg(Qt.formatTime(new Date(), "hh:mm:ss")))
             }
         }
     }
@@ -96,18 +97,18 @@ ApplicationWindow {
             spacing: 14
 
             Label { text: qsTr("Status: Running"); color: root.uiLightGray }
-            Label { text: qsTr("Users: %1").arg(engine.activeUsers);  color: root.uiLightGray }
-            Label { text: qsTr("Alerts: %1").arg(engine.alerts); color: root.uiLightGray }
+            Label { text: qsTr("Users: %1").arg(root.backend.activeUsers);  color: root.uiLightGray }
+            Label { text: qsTr("Alerts: %1").arg(root.backend.alerts); color: root.uiLightGray }
 
             ProgressBar {
                 Layout.fillWidth: true
                 from: 0
                 to: 100
-                value: engine.workload
+                value: root.backend.workload
             }
 
             BusyIndicator {
-                running: engine.autoRefresh
+                running: root.backend.autoRefresh
             }
         }
     }
@@ -142,14 +143,14 @@ ApplicationWindow {
             Switch {
                 id: autoRefreshSwitch
                 text: qsTr("Auto refresh")
-                checked: engine.autoRefresh
-                onCheckedChanged: engine.autoRefresh = checked
+                checked: root.backend.autoRefresh
+                onCheckedChanged: root.backend.autoRefresh = checked
             }
 
             DelayButton {
                 text: qsTr("Safe reset")
                 delay: 1400
-                onActivated: engine.resetSystem()
+                onActivated: root.backend.resetSystem()
             }
         }
     }
@@ -167,7 +168,7 @@ ApplicationWindow {
 
         Label {
             id: aboutDialogText
-            text: qsTr("Qt Quick Controls + C++ Engine demo\nApp version: %1").arg(engine.appVersion)
+            text: qsTr("Qt Quick Controls + C++ Engine demo\nApp version: %1").arg(root.backend.appVersion)
             width: aboutDialog.contentWidth
             wrapMode: Text.WordWrap
         }
@@ -202,7 +203,7 @@ ApplicationWindow {
 
         onAccepted: {
             if (commandInput.text.length > 0)
-                engine.postEvent(levelBox.currentText, commandInput.text)
+                root.backend.postEvent(levelBox.currentText, commandInput.text)
         }
     }
 
@@ -263,22 +264,23 @@ ApplicationWindow {
             currentIndex: tabs.currentIndex
 
             DashboardPage {
-                workload: engine.workload
-                activeUsers: engine.activeUsers
-                alerts: engine.alerts
+                workload: root.backend.workload
+                activeUsers: root.backend.activeUsers
+                alerts: root.backend.alerts
                 themeText: themeBox.currentText
-                notificationsModel: engine.notificationModel
+                notificationsModel: root.backend.notificationModel
             }
 
             ControlsPage {
+                backend: root.backend
                 dialValue: root.dialValue
                 onShowAboutRequested: aboutDialog.open()
                 onDialValueEdited: (v) => root.dialValue = v
             }
 
             DataPage {
-                userModel: engine.userModel
-                workload: engine.workload
+                userModel: root.backend.userModel
+                workload: root.backend.workload
             }
 
             SlidesPage {
@@ -296,17 +298,21 @@ ApplicationWindow {
 
     AnalyticsWindow {
         id: analyticsWindow
+        backend: root.backend
     }
 
     OperationsWindow {
         id: operationsWindow
+        backend: root.backend
     }
 
     MonitoringWindow {
         id: monitoringWindow
+        backend: root.backend
     }
 
     SettingsWindow {
         id: settingsWindow
+        backend: root.backend
     }
 }

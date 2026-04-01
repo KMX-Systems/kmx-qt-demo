@@ -97,18 +97,21 @@ Item {
                     model: root.notificationsModel
                     spacing: 6
                     delegate: Rectangle {
+                        id: notificationDelegate
+                        required property string level
+                        required property string message
                         width: ListView.view.width
                         height: 46
                         radius: 6
-                        color: level === "Critical" ? "#7f1d1d" : "#242424"
+                        color: notificationDelegate.level === "Critical" ? "#7f1d1d" : "#242424"
                         border.color: "#4b5563"
 
                         Row {
                             anchors.fill: parent
                             anchors.margins: 8
                             spacing: 8
-                            Label { text: level; color: "#bfdbfe" }
-                            Label { text: message; color: "#e5e7eb" }
+                            Label { text: notificationDelegate.level; color: "#bfdbfe" }
+                            Label { text: notificationDelegate.message; color: "#e5e7eb" }
                         }
                     }
                 }
@@ -215,22 +218,24 @@ Item {
                                 ]
 
                                 delegate: RowLayout {
+                                    id: serviceRow
+                                    required property var modelData
                                     Layout.fillWidth: true
-                                    Label { text: modelData.name; Layout.preferredWidth: 50; color: "#e2e8f0" }
+                                    Label { text: serviceRow.modelData.name; Layout.preferredWidth: 50; color: "#e2e8f0" }
                                     Rectangle {
                                         Layout.fillWidth: true
-                                        height: 18
+                                        Layout.preferredHeight: 18
                                         color: "#252525"
                                         radius: 4
 
                                         Rectangle {
-                                            width: parent.width * modelData.value / 30
+                                            width: parent.width * serviceRow.modelData.value / 30
                                             height: parent.height
-                                            color: modelData.color
+                                            color: serviceRow.modelData.color
                                             radius: 4
                                         }
                                     }
-                                    Label { text: modelData.value + "%"; Layout.preferredWidth: 42; color: "#a0a0a0" }
+                                    Label { text: serviceRow.modelData.value + "%"; Layout.preferredWidth: 42; color: "#a0a0a0" }
                                 }
                             }
                         }

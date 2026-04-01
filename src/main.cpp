@@ -1,7 +1,6 @@
 #include <QGuiApplication>
 #include <QFont>
 #include <QQmlApplicationEngine>
-#include <QQmlContext>
 #include <QQuickStyle>
 #include <QTranslator>
 #include "Engine.h"
@@ -28,7 +27,9 @@ int main(int argc, char *argv[])
     Engine backendEngine;
 
     QQmlApplicationEngine qmlEngine;
-    qmlEngine.rootContext()->setContextProperty("engine", &backendEngine);
+    qmlEngine.setInitialProperties({
+        {QStringLiteral("backend"), QVariant::fromValue(&backendEngine)},
+    });
 
     auto *translator = new QTranslator(&app);
     QObject::connect(&backendEngine, &Engine::languageChangeRequested,

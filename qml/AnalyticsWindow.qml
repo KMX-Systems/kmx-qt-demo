@@ -5,6 +5,7 @@ import QtQuick.Layouts
 Window {
     id: root
 
+    required property var backend
     width: 860
     height: 560
     title: qsTr("Analytics Window")
@@ -43,9 +44,11 @@ Window {
                     spacing: 10
 
                     Repeater {
-                        model: engine.weeklyStats()
+                        model: root.backend.weeklyStats()
 
                         delegate: ColumnLayout {
+                            id: dayColumn
+                            required property var modelData
                             spacing: 4
                             Layout.fillHeight: true
                             Layout.fillWidth: true
@@ -54,21 +57,21 @@ Window {
 
                             Rectangle {
                                 Layout.alignment: Qt.AlignHCenter
-                                width: 18
-                                height: modelData.read * 3
+                                Layout.preferredWidth: 18
+                                Layout.preferredHeight: dayColumn.modelData.read * 3
                                 color: "#3b82f6"
                             }
 
                             Rectangle {
                                 Layout.alignment: Qt.AlignHCenter
-                                width: 18
-                                height: modelData.write * 3
+                                Layout.preferredWidth: 18
+                                Layout.preferredHeight: dayColumn.modelData.write * 3
                                 color: "#14b8a6"
                             }
 
                             Label {
                                 Layout.alignment: Qt.AlignHCenter
-                                text: modelData.day
+                                text: dayColumn.modelData.day
                                 color: "#e2e8f0"
                             }
                         }

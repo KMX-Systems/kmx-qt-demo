@@ -5,6 +5,7 @@ import QtQuick.Layouts
 Window {
     id: root
 
+    required property var backend
     width: 860
     height: 620
     title: qsTr("Settings Window")
@@ -76,9 +77,9 @@ Window {
                         ColumnLayout {
                             anchors.fill: parent
                             Label { text: qsTr("CPU budget"); color: "#e2e8f0" }
-                            Slider { id: cpuSlider; from: 0; to: 100; value: engine.cpuBudget }
+                            Slider { id: cpuSlider; from: 0; to: 100; value: root.backend.cpuBudget }
                             Label { text: qsTr("Memory budget"); color: "#e2e8f0" }
-                            Slider { id: memorySlider; from: 0; to: 100; value: engine.memoryBudget }
+                            Slider { id: memorySlider; from: 0; to: 100; value: root.backend.memoryBudget }
                         }
                     }
 
@@ -92,7 +93,7 @@ Window {
                                 model: ["English", "Română"]
                                 onActivated: {
                                     var locales = ["en", "ro"]
-                                    engine.setLanguage(locales[currentIndex])
+                                    root.backend.setLanguage(locales[currentIndex])
                                 }
                             }
                         }
@@ -178,8 +179,8 @@ Window {
             Layout.fillWidth: true
             Item { Layout.fillWidth: true }
             Button { text: qsTr("Discard") }
-            Button { text: qsTr("Apply");  onClicked: engine.applyConfig({"cpuBudget": Math.round(cpuSlider.value), "memoryBudget": Math.round(memorySlider.value)}) }
-            Button { text: qsTr("Save");   onClicked: engine.applyConfig({"cpuBudget": Math.round(cpuSlider.value), "memoryBudget": Math.round(memorySlider.value)}) }
+            Button { text: qsTr("Apply");  onClicked: root.backend.applyConfig({"cpuBudget": Math.round(cpuSlider.value), "memoryBudget": Math.round(memorySlider.value)}) }
+            Button { text: qsTr("Save");   onClicked: root.backend.applyConfig({"cpuBudget": Math.round(cpuSlider.value), "memoryBudget": Math.round(memorySlider.value)}) }
         }
     }
 }

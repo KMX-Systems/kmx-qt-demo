@@ -5,6 +5,7 @@ import QtQuick.Layouts
 Window {
     id: root
 
+    required property var backend
     width: 980
     height: 640
     title: qsTr("Monitoring Window")
@@ -12,7 +13,7 @@ Window {
 
     // Repaint canvas whenever the C++ Engine updates workload
     Connections {
-        target: engine
+        target: root.backend
         function onWorkloadChanged() { monitoringCanvas.requestPaint() }
     }
 
@@ -47,7 +48,7 @@ Window {
                 color: "#1d4ed8"
                 Label {
                     anchors.centerIn: parent
-                    text: qsTr("Workload\n%1%").arg(engine.workload)
+                    text: qsTr("Workload\n%1%").arg(root.backend.workload)
                     color: "white"
                     horizontalAlignment: Text.AlignHCenter
                 }
@@ -60,7 +61,7 @@ Window {
                 color: "#0f766e"
                 Label {
                     anchors.centerIn: parent
-                    text: qsTr("Users\n%1").arg(engine.activeUsers)
+                    text: qsTr("Users\n%1").arg(root.backend.activeUsers)
                     color: "white"
                     horizontalAlignment: Text.AlignHCenter
                 }
@@ -73,7 +74,7 @@ Window {
                 color: "#b45309"
                 Label {
                     anchors.centerIn: parent
-                    text: qsTr("Alerts\n%1").arg(engine.alerts)
+                    text: qsTr("Alerts\n%1").arg(root.backend.alerts)
                     color: "white"
                     horizontalAlignment: Text.AlignHCenter
                 }
@@ -99,7 +100,7 @@ Window {
                         var ctx = getContext("2d")
                         var w = width
                         var h = height
-                        var trend = engine.trendData()
+                        var trend = root.backend.trendData()
                         var trendA = trend[0]
                         var trendB = trend[1]
 

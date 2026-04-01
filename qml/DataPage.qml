@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -35,13 +37,17 @@ Item {
                     spacing: 6
 
                     delegate: Frame {
+                        id: userDelegate
+                        required property string name
+                        required property string role
+                        required property string status
                         width: ListView.view.width
                         height: 62
                         RowLayout {
                             anchors.fill: parent
-                            Label { text: name; Layout.preferredWidth: 120; color: "#e2e8f0" }
-                            Label { text: role; Layout.preferredWidth: 120; color: "#a0a0a0" }
-                            Label { text: status; Layout.fillWidth: true; color: "#e2e8f0" }
+                            Label { text: userDelegate.name; Layout.preferredWidth: 120; color: "#e2e8f0" }
+                            Label { text: userDelegate.role; Layout.preferredWidth: 120; color: "#a0a0a0" }
+                            Label { text: userDelegate.status; Layout.fillWidth: true; color: "#e2e8f0" }
                             Button { text: qsTr("Open") }
                         }
                     }
@@ -71,21 +77,23 @@ Item {
                     cellHeight: 110
                     model: 12
                     delegate: Rectangle {
+                        id: nodeDelegate
+                        required property int index
                         width: 130
                         height: 90
                         radius: 8
-                        color: index % 2 === 0 ? "#1e3a8a" : "#0f766e"
+                        color: nodeDelegate.index % 2 === 0 ? "#1e3a8a" : "#0f766e"
                         border.color: "#93c5fd"
 
                         Column {
                             anchors.centerIn: parent
                             spacing: 6
-                            Label { text: qsTr("Node %1").arg(index + 1); color: "white" }
+                            Label { text: qsTr("Node %1").arg(nodeDelegate.index + 1); color: "white" }
                             ProgressBar {
                                 width: 90
                                 from: 0
                                 to: 100
-                                value: (index * 9 + root.workload) % 100
+                                value: (nodeDelegate.index * 9 + root.workload) % 100
                             }
                         }
                     }

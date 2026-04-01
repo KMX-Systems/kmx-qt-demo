@@ -5,6 +5,7 @@ import QtQuick.Layouts
 Item {
     id: root
 
+    required property var backend
     property real dialValue: 55
     signal showAboutRequested()
     signal dialValueEdited(real value)
@@ -115,9 +116,9 @@ Item {
 
                     RowLayout {
                         Layout.fillWidth: true
-                        Button { text: qsTr("Save");     onClicked: engine.applyConfig({"cpuBudget": Math.round(root.dialValue), "memoryBudget": 68}) }
-                        Button { text: qsTr("Deploy");   onClicked: engine.postEvent("Info",    qsTr("Deployment started")) }
-                        Button { text: qsTr("Rollback"); onClicked: engine.postEvent("Warning", qsTr("Rollback triggered")) }
+                        Button { text: qsTr("Save");     onClicked: root.backend.applyConfig({"cpuBudget": Math.round(root.dialValue), "memoryBudget": 68}) }
+                        Button { text: qsTr("Deploy");   onClicked: root.backend.postEvent("Info",    qsTr("Deployment started")) }
+                        Button { text: qsTr("Rollback"); onClicked: root.backend.postEvent("Warning", qsTr("Rollback triggered")) }
                         Item { Layout.fillWidth: true }
                         RoundButton { text: "?"; onClicked: root.showAboutRequested() }
                     }
