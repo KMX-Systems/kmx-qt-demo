@@ -6,6 +6,8 @@ This repository contains a Qt Quick + C++ demo app that is built and run inside:
 
 The app uses a **fake/simulated C++ backend engine** for demo behavior (not a real production backend).
 
+![KMX Qt Demo screenshot](screenshot.png)
+
 ## Project structure
 
 - `CMakeLists.txt` - Qt 6.11 CMake project
@@ -17,9 +19,45 @@ The app uses a **fake/simulated C++ backend engine** for demo behavior (not a re
 
 ## Architecture: QML + fake C++ engine
 
-- `Engine` is injected into QML as context property `engine` in `src/main.cpp`.
+- `Engine` is injected into QML as initial property `backend` in `src/main.cpp`.
 - QML reads `Q_PROPERTY` values such as workload, users, alerts, and models.
 - QML calls C++ `Q_INVOKABLE` methods such as `postEvent(...)`, `applyConfig(...)`, `runJob(...)`, `resetSystem()`, `weeklyStats()`, and `setLanguage(...)`.
+
+```mermaid
+flowchart LR
+  QML[QML GUI<br/>Main.qml + windows/pages]
+  Engine[C++ Engine<br/>Engine.h/.cpp]
+  Models[Qt Models<br/>JobModel/UserModel/NotificationModel]
+  Translator[QTranslator + QQmlApplicationEngine]
+
+  QML -->|Q_INVOKABLE calls| Engine
+  QML -->|Reads Q_PROPERTY values| Engine
+  Engine -->|Signals: workloadChanged, alertsChanged, etc.| QML
+
+  Engine -->|Exposes model objects| Models
+  Models -->|List/Repeater data roles| QML
+
+  QML -->|setLanguage(locale)| Engine
+  Engine -->|languageChangeRequested(locale)| Translator
+  Translator -->|retranslate()| QML
+```
+
+```mermaid
+sequenceDiagram
+  participant User as User
+  participant QML as QML ControlsPage
+  participant Engine as C++ Engine
+  participant Models as Qt Models
+  participant UI as QML Dashboard/Windows
+
+  User->>QML: Click Deploy
+  QML->>Engine: postEvent("Info", "Deployment started")
+  Engine->>Models: append notification / update state
+  Engine-->>UI: Emit change signals
+  UI->>Engine: Read updated Q_PROPERTY values
+  Engine-->>UI: Return new workload/users/alerts/models
+  UI-->>User: Refresh visible widgets and lists
+```
 
 ## Prerequisites
 
